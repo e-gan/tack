@@ -62,19 +62,19 @@ checking off a task
     time/something in anti-productivity category
 
 types of productivity:
-|-- reading
-|-- writing (code/text)
-|-- watch videos
-|-- emails
-|-- ChatGPT...
-|-- coding
-    |-- running code stats (google colab, jupyter?)
-    |-- 
+    reading
+    writing (code/text)
+    watch videos
+    emails
+    ChatGPT...
+    coding
+        running code stats (google colab, jupyter?)
+        
 
 types of anti-productivity:
-|-- social media browsing
-|-- streaming
-|-- gaming
+    social media browsing
+    streaming
+    gaming
 
 Experiment:
 |-- Track everything you do on a laptop for a day and see what stats come up
