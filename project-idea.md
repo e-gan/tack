@@ -1,5 +1,4 @@
-## IDEAS
-----------------------------------------------
+# IDEA
 
 # Objective
 Optimal work pattern algorithm
