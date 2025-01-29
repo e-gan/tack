@@ -1,26 +1,40 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chrome Extension Popup</title>
-    <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" type="text/css" href="popup.css">
 </head>
 <body>
-    <div id="popup-container">
-        <h1>Productivity Tracker</h1>
-        <div id="stats">
-            <h2>Summary Stats</h2>
-            <div id="tasks-completed">Tasks Completed: <span id="task-count">0</span></div>
-            <div id="flow-state">Flow State: <span id="flow-status">Unknown</span></div>
-        </div>
-        <div id="task-list">
-            <h2>Tasks</h2>
-            <ul id="tasks"></ul>
-            <input type="text" id="new-task" placeholder="New task">
-        </div>
-        <button id="refresh-button">Refresh Stats</button>
+    <h1>Task Tracker</h1>
+
+    <input type="text" id="new-task" placeholder="New task...">
+    <input type="text" id="category-name" placeholder="Category name...">
+
+    <label for="category-color">Choose category color:</label>
+    <input type="color" id="category-color" value="#ff0000">
+
+    <!-- Task Count -->
+    <div>
+        <span><strong>Task Count:</strong> </span>
+        <span id="task-count">0</span>  <!-- Ensure this exists -->
     </div>
+
+    <!-- Total Time Spent -->
+    <div>
+        <span><strong>Total Time Spent:</strong> </span>
+        <span id="total-time">00:00:00</span> <!-- Ensure this exists -->
+    </div>
+
+    <ul id="tasks"></ul>
+
+    <div id="summary-stats" class="stats">
+        <span>Summary Statistics</span>
+        <div id="stats-container" class="hidden">
+            <div id="category-stats"></div>
+            <button id="refresh-button">Refresh</button>
+        </div>
+    </div>
+
+    <!-- Ensure the script is loaded after all elements are present -->
     <script src="popup.js"></script>
 </body>
 </html>

@@ -3,6 +3,7 @@ body {
     margin: 0;
     padding: 10px;
     background-color: #f9f9f9;
+    width: 400px; /* Make the extension window wider */
 }
 
 h1 {
@@ -39,18 +40,23 @@ button:active {
     padding: 10px;
     border-radius: 5px;
     background-color: #fff;
+    cursor: pointer;
 }
 
 .checkbox {
     margin-right: 5px;
 }
 
-#new-task {
+#new-task, #category-name, #category-color {
     width: calc(100% - 22px);
     padding: 10px;
     margin: 10px 0;
     border: 1px solid #ccc;
     border-radius: 5px;
+}
+
+#category-color {
+    cursor: pointer;
 }
 
 #tasks {
@@ -69,6 +75,26 @@ button:active {
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
+}
+
+.task-name-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.caret {
+    margin-left: 5px;
+    transition: transform 0.3s ease;
+}
+
+.caret-rotate {
+    transform: rotate(180deg);
+}
+
+.task-name {
+    font-size: 18px; /* Make task name text larger */
+    margin-left: 5px; /* Ensure task name is next to the checkbox */
 }
 
 .link-item {
@@ -119,11 +145,11 @@ button:active {
 .start-button, .stop-button {
     color: white;
     border: none;
-    padding: 4px 4px;
+    padding: 5px 5px; /* Make buttons smaller */
     text-align: center;
     text-decoration: none;
     display: inline-block;
-    font-size: 14px;
+    font-size: 12px; /* Make buttons smaller */
     cursor: pointer;
     border-radius: 5px;
     transition: transform 0.1s ease; /* Add transition for animation */
@@ -168,4 +194,9 @@ button:active {
 
 .hidden {
     display: none;
+}
+
+.category-highlight {
+    padding: 2px 5px;
+    border-radius: 3px;
 }
