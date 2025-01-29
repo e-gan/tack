@@ -14,18 +14,23 @@ button {
     background-color: #4CAF50;
     color: white;
     border: none;
-    padding: 10px 15px;
+    padding: 5px 10px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
-    font-size: 16px;
+    font-size: 14px;
     margin: 4px 2px;
     cursor: pointer;
     border-radius: 5px;
+    transition: transform 0.1s ease; /* Add transition for animation */
 }
 
 button:hover {
     background-color: #45a049;
+}
+
+button:active {
+    transform: scale(0.95); /* Add scale effect on click */
 }
 
 .stats {
@@ -48,11 +53,119 @@ button:hover {
     border-radius: 5px;
 }
 
-#add-task-button {
-    width: 100%;
-}
-
 #tasks {
     list-style-type: none; /* Remove bullet points */
     padding: 0;
+}
+
+.task-item {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.task-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.link-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 2px; /* Reduce vertical spacing */
+    padding: 2px 0; /* Add small padding */
+}
+
+.link-item a {
+    padding-left: 10px; /* Indent URL text */
+}
+
+.add-link-button {
+    background-color: transparent;
+    color: green;
+    border: none;
+    cursor: pointer;
+    font-size: 20px;
+    margin: 0 5px; /* Adjust margin for spacing */
+}
+
+.add-link-button:hover {
+    color: darkgreen;
+}
+
+.remove-link-button {
+    background-color: transparent;
+    color: red;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    margin-left: 10px;
+}
+
+.remove-link-button:hover {
+    color: darkred;
+}
+
+.time-display {
+    margin-left: 10px;
+    font-size: 14px;
+    color: #555;
+}
+
+.start-button, .stop-button {
+    color: white;
+    border: none;
+    padding: 4px 4px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: transform 0.1s ease; /* Add transition for animation */
+}
+
+.start-button {
+    background-color: #4CAF50;
+}
+
+.stop-button {
+    background-color: #f44336; /* Red color for stop button */
+}
+
+.start-button:hover, .stop-button:hover {
+    background-color: #45a049;
+}
+
+.stop-button:hover {
+    background-color: #d32f2f; /* Darker red on hover */
+}
+
+.start-button:active, .stop-button:active {
+    transform: scale(0.95); /* Add scale effect on click */
+}
+
+.button-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.button-group button {
+    flex: 1;
+    margin: 0 5px;
+}
+
+.button-group .add-link-button {
+    flex: 0;
+    margin: 0 10px;
+}
+
+.hidden {
+    display: none;
 }
