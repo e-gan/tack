@@ -1,7 +1,7 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Roboto', Arial, sans-serif;
     margin: 0;
-    padding: 10px;
+    padding: 20px;
     background-color: #f9f9f9;
     width: 400px; /* Make the extension window wider */
 }
@@ -17,12 +17,11 @@ button {
     border: none;
     padding: 5px 10px;
     text-align: center;
-    text-decoration: none;
     display: inline-block;
     font-size: 14px;
     margin: 4px 2px;
     cursor: pointer;
-    border-radius: 5px;
+    border-radius: 10px;
     transition: transform 0.1s ease; /* Add transition for animation */
 }
 
@@ -39,18 +38,38 @@ button:active {
     border: 1px solid #ccc;
     padding: 10px;
     border-radius: 5px;
-    background-color: #fff;
+    background-color: #cecdcd;
+    color: white;
     cursor: pointer;
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    font-size: 16px; /* Make the text larger */
+}
+
+.stats:hover {
+    background-color: #a4aaa4;
+}
+
+.stats:active {
+    transform: scale(0.95);
 }
 
 .checkbox {
-    margin-right: 5px;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background-color: #f9f9f9;
+    border: 2px solid #bcc0bc;
+    border-radius: 5px;
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 #new-task, #category-name, #category-color {
     width: calc(100% - 22px);
     padding: 10px;
-    margin: 10px 0;
+    margin: 5px 0;
     border: 1px solid #ccc;
     border-radius: 5px;
 }
@@ -64,10 +83,17 @@ button:active {
     padding: 0;
 }
 
+/* Updated task-item styles */
 .task-item {
     display: flex;
-    flex-direction: column;
-    margin-bottom: 10px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    margin-bottom: 5px;
+    background-color: #fff; /* Neutral background color */
+    border: 2px solid transparent; /* Default border color */
+    border-radius: 4px;
+    transition: border-color 0.3s ease; /* Smooth transition for border color */
 }
 
 .task-content {
@@ -75,6 +101,21 @@ button:active {
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
+    width: 90%;
+}
+
+.time-display, .cumulative-time-display {
+    font-size: 14px;
+    color: #666;
+    text-align: right; /* Right justify the time values */
+    margin-left: 10px; /* Add some space between the two timers */
+}
+
+.time-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
 }
 
 .task-name-container {
@@ -93,8 +134,10 @@ button:active {
 }
 
 .task-name {
-    font-size: 18px; /* Make task name text larger */
-    margin-left: 5px; /* Ensure task name is next to the checkbox */
+    font-size: 18px;
+    margin-left: 3px;
+    font-weight: 300;
+
 }
 
 .link-item {
@@ -103,7 +146,7 @@ button:active {
     justify-content: space-between;
     width: 100%;
     margin-bottom: 2px; /* Reduce vertical spacing */
-    padding: 2px 0; /* Add small padding */
+    padding: 2px 0;
 }
 
 .link-item a {
@@ -137,9 +180,10 @@ button:active {
 }
 
 .time-display {
-    margin-left: 10px;
     font-size: 14px;
-    color: #555;
+    color: #666;
+    text-align: right; /* Right justify the time values */
+    flex: 1; /* Allow the time display to take available space */
 }
 
 .start-button, .stop-button {
@@ -198,5 +242,43 @@ button:active {
 
 .category-highlight {
     padding: 2px 5px;
-    border-radius: 3px;
+    border-radius: 50px;
+    color: #e0e0e0;
+}
+
+.color-options {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.color-option {
+    width: 30px;
+    height: 30px;
+    margin: 5px;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.color-option:hover {
+    border-color: #000;
+}
+
+.add-task-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.add-task-button:hover {
+    background-color: #45a049;
+}
+
+.add-task-button:active {
+    transform: scale(0.95); /* Add scale effect on click */
 }

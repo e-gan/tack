@@ -1,7 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const newTaskInput = document.getElementById('new-task');
     const categoryNameInput = document.getElementById('category-name');
-    const categoryColorInput = document.getElementById('category-color');
+    const colorOptionsContainer = document.getElementById('color-options');
+    const addTaskButton = document.getElementById('add-task-button');
     const tasksContainer = document.getElementById('tasks');
     const taskCountElement = document.getElementById('task-count');
     const totalTimeElement = document.getElementById('total-time');
@@ -15,45 +16,63 @@ document.addEventListener('DOMContentLoaded', function() {
     let activeTask = null;
     let activeTaskStartTime = null;
     let timerInterval = null;
+    let selectedColor = '#FFB3BA'; // Default color
+    let selectedColorIndex = 0; // Index of the currently selected color
 
-    // Load tasks and task count from storage
-    chrome.storage.sync.get(['tasks', 'taskCount', 'totalTimeSpent', 'categoryTimes', 'categoryColors', 'activeTask', 'elapsedTime'], function(data) {
-        if (data.tasks) {
-            data.tasks.forEach(task => addTask(task.text, task.category, task.color, task.links, task.timeSpent, false));
-        }
-        if (data.taskCount) {
-            taskCount = data.taskCount;
-            taskCountElement.textContent = taskCount;
-        }
-        if (data.totalTimeSpent) {
-            totalTimeSpent = data.totalTimeSpent;
-            totalTimeElement.textContent = formatTime(totalTimeSpent);
-        }
-        if (data.categoryTimes) {
-            categoryTimes = data.categoryTimes;
-        }
-        if (data.categoryColors) {
-            categoryColors = data.categoryColors;
-        }
-        if (data.activeTask) {
-            const taskItem = document.querySelector(`[data-task-id="${data.activeTask.id}"]`);
-            if (taskItem) {
-                startTask(taskItem, data.activeTask.startTime, data.elapsedTime || 0);
-            }
-        }
-        updateCategoryStats();
+    // Predefined pastel color options in rainbow order
+    const colors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', '#E3BAFF'];
+
+    // Add color options to the container
+    colors.forEach((color, index) => {
+        const colorOption = document.createElement('div');
+        colorOption.className = 'color-option';
+        colorOption.style.backgroundColor = color;
+        colorOption.addEventListener('click', () => {
+            selectColor(index);
+        });
+        colorOptionsContainer.appendChild(colorOption);
     });
+
+    function selectColor(index) {
+        selectedColorIndex = index;
+        selectedColor = colors[index];
+        // Highlight the selected color
+        document.querySelectorAll('.color-option').forEach((option, i) => {
+            option.style.borderColor = i === index ? '#000' : 'transparent';
+        });
+    }
 
     newTaskInput.addEventListener('keypress', function(event) {
         if (event.key === 'Enter') {
-            createTask();
+            categoryNameInput.focus(); // Move focus to category name input
         }
     });
 
-    categoryNameInput.addEventListener('keypress', function(event) {
+    categoryNameInput.addEventListener('keydown', function(event) {
         if (event.key === 'Enter') {
-            createTask();
+            console.log('Enter pressed');
+            const categoryName = categoryNameInput.value.trim();
+            if (categoryColors[categoryName]) {
+                // If the category name has already been associated with a color, create the task
+                createTask();
+            } else if (selectedColorIndex === null) {
+                // If no color is selected, select the first color box
+                selectColor(0);
+            } else {
+                // Move focus to color selection
+                colorOptionsContainer.focus();
+            }
+        } else if (event.key === 'ArrowRight') {
+            selectedColorIndex = (selectedColorIndex + 1) % colors.length;
+            selectColor(selectedColorIndex);
+        } else if (event.key === 'ArrowLeft') {
+            selectedColorIndex = (selectedColorIndex - 1 + colors.length) % colors.length;
+            selectColor(selectedColorIndex);
         }
+    });
+
+    addTaskButton.addEventListener('click', function() {
+        createTask();
     });
 
     refreshButton.addEventListener('click', function() {
@@ -76,18 +95,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function createTask() {
         const taskText = newTaskInput.value.trim();
         const categoryName = categoryNameInput.value.trim();
-        let categoryColor = categoryColorInput.value;
         if (taskText && categoryName) {
-            if (categoryColors[categoryName] && categoryColor === '#ff0000') {
-                categoryColor = categoryColors[categoryName];
-            } else {
-                categoryColors[categoryName] = categoryColor;
-                updateCategoryColor(categoryName, categoryColor);
-            }
-            addTask(taskText, categoryName, categoryColor, [], 0, true);
+            addTask(taskText, categoryName, selectedColor, [], 0, true);
             newTaskInput.value = '';
             categoryNameInput.value = '';
-            categoryColorInput.value = '#ff0000';
+            selectColor(0); // Reset color selection
         }
     }
 
@@ -98,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
         taskItem.dataset.category = category; // Store category in data attribute
         taskItem.dataset.taskId = taskId; // Store task ID in data attribute
         taskItem.dataset.cumulativeTime = timeSpent; // Store cumulative time in data attribute
-        taskItem.style.backgroundColor = color;
+        taskItem.style.borderColor = color; // Set border color based on category
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
@@ -149,6 +161,11 @@ document.addEventListener('DOMContentLoaded', function() {
         cumulativeTimeDisplay.className = 'cumulative-time-display';
         cumulativeTimeDisplay.textContent = formatTime(timeSpent); // Display cumulative time
 
+        const timeContainer = document.createElement('div');
+        timeContainer.className = 'time-container';
+        timeContainer.appendChild(timeDisplay);
+        timeContainer.appendChild(cumulativeTimeDisplay);
+
         const startButton = document.createElement('button');
         startButton.textContent = 'Start';
         startButton.className = 'start-button';
@@ -173,8 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
         taskContent.className = 'task-content';
         taskContent.appendChild(checkbox);
         taskContent.appendChild(taskNameContainer);
-        taskContent.appendChild(timeDisplay);
-        taskContent.appendChild(cumulativeTimeDisplay);
+        taskContent.appendChild(timeContainer);
         taskContent.appendChild(buttonGroup);
 
         const linksContainer = document.createElement('div');
@@ -283,7 +299,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tasksContainer.querySelectorAll('li').forEach(taskItem => {
             const taskName = taskItem.querySelector('.task-name').textContent;
             const category = taskItem.dataset.category;
-            const color = taskItem.style.backgroundColor;
+            const color = taskItem.style.borderColor;
             const cumulativeTime = parseInt(taskItem.dataset.cumulativeTime);
             const links = [];
             taskItem.querySelectorAll('.link-item').forEach(linkItem => {
@@ -328,7 +344,7 @@ document.addEventListener('DOMContentLoaded', function() {
         tasksContainer.querySelectorAll('.task-item').forEach(taskItem => {
             const taskCategory = taskItem.dataset.category;
             if (taskCategory === category) {
-                taskItem.style.backgroundColor = color;
+                taskItem.style.borderColor = color;
             }
         });
         updateCategoryStats();
