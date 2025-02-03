@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    categoryNameInput.addEventListener('keydown', function(event) {
+    categoryNameInput.addEventListener('keypress', function(event) {
         if (event.key === 'Enter') {
             console.log('Enter pressed');
             const categoryName = categoryNameInput.value.trim();

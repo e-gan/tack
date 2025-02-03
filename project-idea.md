@@ -8,6 +8,7 @@ inspo: VSCode todo tree
 
 alternate goal: maximize time in flow state (flow state is harder to quantify)
 
+# GOAL
 
 task (toggle)
 - link (clickable)  [checkbox]
@@ -17,15 +18,18 @@ task (toggle)
 
 # Features
 
-summary stats (sidebar?)
-toggle (daily/weekly/all-time)
-hyperlink tasks back to specific places (sections of a tab)
+- summary stats (sidebar?)
+    - toggle (daily/weekly/all-time)
+    - hyperlink tasks back to specific places (sections of a tab)
+- indicate which task you're currently working on
 
-
-Tasks completed
-Average task size:
-- ideal size (time entered to time completed)
-- prevents misuse don't want to track time spent on related tabs
+## Metrics
+- Tasks completed
+- Average task size:
+    - ideal size (time entered to time completed)
+        - pomodoro type timing (25 min)
+    - prevents misuse don't want to track time spent on related tabs
+    - number of tabs categorized under a task
 
 Categories (example)
 - productivity (time task is listed)
@@ -75,8 +79,6 @@ types of anti-productivity:
 
 Experiment:
 - Track everything you do on a laptop for a day and see what stats come up
-- 
-
 
 ----------------------------------------------
 
@@ -84,9 +86,26 @@ Experiment:
 - David Karger
 - Chrome tabs API
 
-
 ----------------------------------------------
 
 # Components:
 - chrome extension 
 - laptop app
+
+----------------------------------------------
+
+# Brainstorm with Karim
+work session
+- start/stop
+- Are you still watching (Netflix)
+- VSCode lines written
+- Spotify Wrapped type of summary of activity
+
+<!-- TODO -->jdhdgjsd
+Decide on what the form of gamification is
+- timing reward w break
+- working archetype
+
+Figure out what features Chrome even tracks
+
+Decide on features/metrics to track

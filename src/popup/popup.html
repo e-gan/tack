@@ -5,29 +5,34 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <h1>Task Tracker</h1>
+    <div class="header-container">
+        <img src="tack.svg" alt="Tack" class="logo">
+        <div class="stats-container">
+            <!-- Task Count -->
+            <div id="task-count-container">
+                <span><strong>Task Count:</strong> </span>
+                <span id="task-count">0</span>  <!-- Ensure this exists -->
+            </div>
+            <!-- Total Time Spent -->
+            <div>
+                <span><strong>Total Time Spent:</strong> </span>
+                <span id="total-time">00:00:00</span> <!-- Ensure this exists -->
+            </div>
+        </div>
+    </div>
+
 
     <input type="text" id="new-task" placeholder="New task...">
-
-    <div>
-        <input type="text" id="category-name" placeholder="Category Name">
+    <input type="text" id="category-name" placeholder="Category Name">
+    
+    <div class="header-container">
         <div id="color-options" class="color-options">
             <!-- Color options will be dynamically added here -->
         </div>
-        <button id="add-task-button" class="add-task-button">Add Task</button>
+        <button id="add-task-button">Add Task</button>
     </div>
 
-    <!-- Task Count -->
-    <div>
-        <span><strong>Task Count:</strong> </span>
-        <span id="task-count">0</span>  <!-- Ensure this exists -->
-    </div>
 
-    <!-- Total Time Spent -->
-    <div>
-        <span><strong>Total Time Spent:</strong> </span>
-        <span id="total-time">00:00:00</span> <!-- Ensure this exists -->
-    </div>
 
     <ul id="tasks"></ul>
 
