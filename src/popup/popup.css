@@ -104,10 +104,30 @@ button:active {
     cursor: pointer;
 }
 
+#category-stats ul {
+    list-style-type: none; /* Remove bullet points */
+    padding-left: 15px; /* Indent for readability */
+    text-align: left; /* Ensure tasks are left-aligned */
+}
+
+#color-options {
+    outline: none; /* Remove default outline */
+}
+
+
 #tasks {
     list-style-type: none; /* Remove bullet points */
     padding: 0;
 }
+
+#stats-container {
+    padding: 10px;
+}
+
+#stats-container div {
+    margin-bottom: 5px; /* Add some space between each category */
+}
+
 
 /* Updated task-item styles */
 .task-item {
@@ -269,7 +289,11 @@ button:active {
 .category-highlight {
     padding: 2px 5px;
     border-radius: 50px;
-    color: #e0e0e0;
+    color: #333;
+    font-weight: bold;
+    text-align: left;
+    display: block;
+    width: 100%;
 }
 
 .enter {

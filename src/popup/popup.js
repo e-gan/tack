@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const newTaskInput = document.getElementById('new-task');
     const categoryNameInput = document.getElementById('category-name');
     const colorOptionsContainer = document.getElementById('color-options');
+    const headerContainer = document.getElementById('header-container');
     const addTaskButton = document.getElementById('add-task-button');
     const tasksContainer = document.getElementById('tasks');
     const taskCountElement = document.getElementById('task-count');
@@ -27,11 +28,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const colorOption = document.createElement('div');
         colorOption.className = 'color-option';
         colorOption.style.backgroundColor = color;
+        colorOption.dataset.index = index; // Store index for easy navigation
         colorOption.addEventListener('click', () => {
             selectColor(index);
         });
         colorOptionsContainer.appendChild(colorOption);
     });
+
 
     function selectColor(index) {
         selectedColorIndex = index;
@@ -42,6 +45,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Load saved tasks and stats from chrome.storage.sync
+    chrome.storage.sync.get(['tasks', 'taskCount', 'totalTimeSpent', 'categoryTimes', 'categoryColors', 'activeTask', 'elapsedTime'], function(data) {
+        if (data.tasks) {
+            data.tasks.forEach(task => {
+                addTask(task.text, task.category, task.color, task.links, task.timeSpent, false);
+            });
+        }
+        taskCount = data.taskCount || 0;
+        totalTimeSpent = data.totalTimeSpent || 0;
+        categoryTimes = data.categoryTimes || {};
+        categoryColors = data.categoryColors || {};
+
+        taskCountElement.textContent = taskCount;
+        totalTimeElement.textContent = formatTime(totalTimeSpent);
+        updateCategoryStats();
+
+        // Restore active task if it was running
+        if (data.activeTask) {
+            const taskElement = document.querySelector(`[data-task-id="${data.activeTask.id}"]`);
+            if (taskElement) {
+                startTask(taskElement, data.activeTask.startTime, data.elapsedTime || 0);
+            }
+        }
+    });
+
+
+
+    newTaskInput.focus();
+
     newTaskInput.addEventListener('keypress', function(event) {
         if (event.key === 'Enter') {
             categoryNameInput.focus(); // Move focus to category name input
@@ -50,25 +82,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
     categoryNameInput.addEventListener('keypress', function(event) {
         if (event.key === 'Enter') {
-            console.log('Enter pressed');
+            event.preventDefault(); // Prevent form submission
             const categoryName = categoryNameInput.value.trim();
-            if (categoryColors[categoryName]) {
-                // If the category name has already been associated with a color, create the task
-                createTask();
-            } else if (selectedColorIndex === null) {
-                // If no color is selected, select the first color box
-                selectColor(0);
-            } else {
-                // Move focus to color selection
-                colorOptionsContainer.focus();
+            if (categoryName) {
+                if (categoryColors[categoryName]) {
+                    createTask();
+                } else {
+                    // Move focus to color selection
+                    selectColor(0);  // Select the first color by default
+                    colorOptionsContainer.focus(); // Move focus to color selection
+                }
             }
-        } else if (event.key === 'ArrowRight') {
+        }
+    });
+
+    colorOptionsContainer.setAttribute('tabindex', '0'); // Make div focusable
+
+
+
+    headerContainer.addEventListener('keydown', function(event) {
+        if (event.key === 'ArrowRight') {
+            console.log("arrow right header container");
             selectedColorIndex = (selectedColorIndex + 1) % colors.length;
             selectColor(selectedColorIndex);
         } else if (event.key === 'ArrowLeft') {
             selectedColorIndex = (selectedColorIndex - 1 + colors.length) % colors.length;
             selectColor(selectedColorIndex);
+        } else if (event.key === 'Enter') {
+            createTask();
         }
+
     });
 
     addTaskButton.addEventListener('click', function() {
@@ -99,9 +142,30 @@ document.addEventListener('DOMContentLoaded', function() {
             addTask(taskText, categoryName, selectedColor, [], 0, true);
             newTaskInput.value = '';
             categoryNameInput.value = '';
-            selectColor(0); // Reset color selection
+            selectedColorIndex = -1; // Reset color selection
+            document.querySelectorAll('.color-option').forEach(option => option.style.borderColor = 'transparent');
         }
     }
+
+    function saveTasks() {
+        const tasks = [];
+        tasksContainer.querySelectorAll('.task-item').forEach(taskItem => {
+            const taskName = taskItem.querySelector('span').textContent;
+            const category = taskItem.dataset.category;
+            const color = taskItem.style.borderColor;
+            const cumulativeTime = parseInt(taskItem.dataset.cumulativeTime);
+            tasks.push({ text: taskName, category: category, color: color, links: [], timeSpent: cumulativeTime });
+        });
+
+        chrome.storage.sync.set({
+            tasks: tasks,
+            taskCount: taskCount,
+            totalTimeSpent: totalTimeSpent,
+            categoryTimes: categoryTimes,
+            categoryColors: categoryColors
+        });
+    }
+
 
     function addTask(taskText, category, color, links, timeSpent, save) {
         const taskId = `task-${Date.now()}`;
@@ -241,30 +305,54 @@ document.addEventListener('DOMContentLoaded', function() {
         if (activeTask) {
             stopTask(activeTask);
         }
+
         activeTask = taskItem;
         activeTaskStartTime = startTime - elapsedTime;
+
         const timeDisplay = taskItem.querySelector('.time-display');
-        const startButton = taskItem.querySelector('.start-button');
         const stopButton = taskItem.querySelector('.stop-button');
+        const startButton = taskItem.querySelector('.start-button');
+
         startButton.disabled = true;
         stopButton.disabled = false;
+
         timerInterval = setInterval(() => {
             const elapsedTime = Date.now() - activeTaskStartTime;
             timeDisplay.textContent = formatTime(elapsedTime);
+
+            // Continuously save elapsed time to storage
+            chrome.storage.sync.set({
+                activeTask: {
+                    id: taskItem.dataset.taskId,
+                    startTime: activeTaskStartTime
+                },
+                elapsedTime: elapsedTime
+            });
         }, 1000);
-        chrome.runtime.sendMessage({ action: "startTask", taskId: taskItem.dataset.taskId, startTime: startTime, elapsedTime: elapsedTime });
+
+        chrome.runtime.sendMessage({
+            action: "startTask",
+            taskId: taskItem.dataset.taskId,
+            startTime: startTime,
+            elapsedTime: elapsedTime
+        });
     }
+
+
 
     function stopTask(taskItem) {
         clearInterval(timerInterval);
+
         const timeDisplay = taskItem.querySelector('.time-display');
         const cumulativeTimeDisplay = taskItem.querySelector('.cumulative-time-display');
+
         const elapsedTime = Date.now() - activeTaskStartTime;
         const currentTaskTime = parseTime(timeDisplay.textContent);
         const newTaskTime = currentTaskTime + elapsedTime;
-        timeDisplay.textContent = formatTime(0); // Reset current session time
+
+        timeDisplay.textContent = formatTime(0);
         taskItem.dataset.cumulativeTime = parseInt(taskItem.dataset.cumulativeTime) + elapsedTime;
-        cumulativeTimeDisplay.textContent = formatTime(parseInt(taskItem.dataset.cumulativeTime)); // Update cumulative time
+        cumulativeTimeDisplay.textContent = formatTime(parseInt(taskItem.dataset.cumulativeTime));
 
         const startButton = taskItem.querySelector('.start-button');
         const stopButton = taskItem.querySelector('.stop-button');
@@ -285,31 +373,13 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCategoryStats();
 
         saveTasks();
+
+        // Remove active task tracking from storage
+        chrome.storage.sync.remove(['activeTask', 'elapsedTime']);
+
         chrome.runtime.sendMessage({ action: "stopTask" });
     }
 
-    function incrementTaskCount() {
-        taskCount++;
-        taskCountElement.textContent = taskCount;
-        chrome.storage.sync.set({ taskCount: taskCount });
-    }
-
-    function saveTasks() {
-        const tasks = [];
-        tasksContainer.querySelectorAll('li').forEach(taskItem => {
-            const taskName = taskItem.querySelector('.task-name').textContent;
-            const category = taskItem.dataset.category;
-            const color = taskItem.style.borderColor;
-            const cumulativeTime = parseInt(taskItem.dataset.cumulativeTime);
-            const links = [];
-            taskItem.querySelectorAll('.link-item').forEach(linkItem => {
-                const link = linkItem.querySelector('a');
-                links.push({ domain: link.textContent, url: link.href });
-            });
-            tasks.push({ text: taskName, category: category, color: color, links: links, timeSpent: cumulativeTime });
-        });
-        chrome.storage.sync.set({ tasks: tasks, totalTimeSpent: totalTimeSpent, categoryTimes: categoryTimes, categoryColors: categoryColors });
-    }
 
     function updateCategoryStats() {
         categoryStatsContainer.innerHTML = '';
@@ -365,4 +435,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const seconds = parseInt(timeParts[2]) * 1000;
         return hours + minutes + seconds;
     }
+
+    newTaskInput.focus();
 });

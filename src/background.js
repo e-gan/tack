@@ -2,13 +2,9 @@ let activeTask = null;
 let activeTaskStartTime = null;
 let timerInterval = null;
 
-chrome.runtime.onInstalled.addListener(() => {
-    console.log("Extension installed");
-});
-
+// Resume task tracking on startup
 chrome.runtime.onStartup.addListener(() => {
-    console.log("Extension started");
-    chrome.storage.sync.get(['activeTask'], function(data) {
+    chrome.storage.sync.get(['activeTask', 'elapsedTime'], function (data) {
         if (data.activeTask) {
             activeTask = data.activeTask.id;
             activeTaskStartTime = data.activeTask.startTime;
@@ -17,6 +13,7 @@ chrome.runtime.onStartup.addListener(() => {
     });
 });
 
+// Listen for messages from popup.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "startTask") {
         startTask(request.taskId, request.startTime, request.elapsedTime);
@@ -30,6 +27,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
+// Start tracking a task (keeps running even when popup closes)
 function startTask(taskId, startTime, elapsedTime) {
     if (activeTask) {
         stopTask();
@@ -49,12 +47,14 @@ function startTask(taskId, startTime, elapsedTime) {
         clearInterval(timerInterval);
     }
 
+    // Continuously update elapsed time every second
     timerInterval = setInterval(() => {
         const elapsedTime = Date.now() - activeTaskStartTime;
         chrome.storage.sync.set({ elapsedTime: elapsedTime });
     }, 1000);
 }
 
+// Stop tracking a task
 function stopTask() {
     if (timerInterval) {
         clearInterval(timerInterval);
@@ -66,15 +66,21 @@ function stopTask() {
     chrome.storage.sync.remove(['activeTask', 'elapsedTime']);
 }
 
+// Resume active task when Chrome restarts or extension reloads
 function resumeTask() {
-    if (activeTask && activeTaskStartTime) {
-        if (timerInterval) {
-            clearInterval(timerInterval);
-        }
+    chrome.storage.sync.get(['activeTask', 'elapsedTime'], function (data) {
+        if (data.activeTask) {
+            activeTask = data.activeTask.id;
+            activeTaskStartTime = data.activeTask.startTime - (data.elapsedTime || 0);
 
-        timerInterval = setInterval(() => {
-            const elapsedTime = Date.now() - activeTaskStartTime;
-            chrome.storage.sync.set({ elapsedTime: elapsedTime });
-        }, 1000);
-    }
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+
+            timerInterval = setInterval(() => {
+                const elapsedTime = Date.now() - activeTaskStartTime;
+                chrome.storage.sync.set({ elapsedTime: elapsedTime });
+            }, 1000);
+        }
+    });
 }
