@@ -1,4 +1,5 @@
-let activeTask = null;
+let activeTaskId = null;
+let activeTaskName = null;
 let activeTaskStartTime = null;
 let timerInterval = null;
 
@@ -6,7 +7,7 @@ let timerInterval = null;
 chrome.runtime.onStartup.addListener(() => {
     chrome.storage.sync.get(['activeTask', 'elapsedTime'], function (data) {
         if (data.activeTask) {
-            activeTask = data.activeTask.id;
+            activeTaskId = data.activeTask.id;
             activeTaskStartTime = data.activeTask.startTime;
             resumeTask();
         }
@@ -21,7 +22,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         stopTask();
     } else if (request.action === "getTaskStatus") {
         sendResponse({
-            activeTask: activeTask,
+            activeTaskId: activeTaskId,
             startTime: activeTaskStartTime
         });
     }
@@ -29,16 +30,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Start tracking a task (keeps running even when popup closes)
 function startTask(taskId, startTime, elapsedTime) {
-    if (activeTask) {
+    if (activeTaskId) {
         stopTask();
     }
 
-    activeTask = taskId;
+    activeTaskId = taskId;
     activeTaskStartTime = startTime - elapsedTime;
 
     chrome.storage.sync.set({
         activeTask: {
-            id: activeTask,
+            id: activeTaskId,
             startTime: activeTaskStartTime
         }
     });
@@ -60,7 +61,7 @@ function stopTask() {
         clearInterval(timerInterval);
     }
 
-    activeTask = null;
+    activeTaskId = null;
     activeTaskStartTime = null;
 
     chrome.storage.sync.remove(['activeTask', 'elapsedTime']);
