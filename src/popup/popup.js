@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const summaryStats = document.getElementById('summary-stats');
     const refreshButton = document.getElementById('refresh-button');
     const categoryStatsContainer = document.getElementById('category-stats');
+    const progressPath = document.getElementById("progress");
+    const goalTime = 20*60*1000; // 20 minutes in milliseconds
     let taskCount = 0;
     let totalTimeSpent = 0;
     let categoryTimes = {};
@@ -47,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load saved tasks and stats from chrome.storage.sync
-    chrome.storage.sync.get(['tasks', 'taskCount', 'totalTimeSpent', 'categoryTimes', 'categoryColors', 'activeTask', 'elapsedTime'], function(data) {
+    chrome.storage.sync.get(['tasks', 'taskCount', 'totalTimeSpent', 'categoryTimes', 'categoryColors', 'activeTask'], function(data) {
         if (data.tasks) {
             data.tasks.forEach(task => {
                 addTask(task.text, task.id, task.category, task.color, task.links, task.timeSpent, false);
@@ -63,9 +65,10 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCategoryStats();
 
         // Restore active task if it was running
+        console.log(data.activeTask);
         if (data.activeTask) {
             console.log(data.activeTask.id);
-            startTask(getTaskItemById(data.activeTask.id), data.activeTask.startTime, data.elapsedTime || 0);
+            startTask(getTaskItemById(data.activeTask.id), data.activeTask.startTime);
         }
     });
 
@@ -309,13 +312,17 @@ document.addEventListener('DOMContentLoaded', function() {
         linksContainer.appendChild(linkItem);
     }
 
-    function startTask(taskItem, startTime = Date.now(), elapsedTime = 0) {
-        if (activeTaskId) {
+    function startTask(taskItem, startTime) {
+        if (activeTaskId && activeTaskStartTime) {
             stopTask(getTaskItemById(activeTaskId));
         }
 
+        if (!startTime) {
+            startTime = Date.now();
+        }
+
         activeTaskId = taskItem.dataset.taskId;
-        activeTaskStartTime = startTime - elapsedTime;
+        activeTaskStartTime = startTime;
 
         const timeDisplay = taskItem.querySelector('.time-display');
         const stopButton = taskItem.querySelector('.stop-button');
@@ -327,27 +334,27 @@ document.addEventListener('DOMContentLoaded', function() {
         timerInterval = setInterval(() => {
             const elapsedTime = Date.now() - activeTaskStartTime;
 
-            // Continuously save elapsed time to storage
+            // // Continuously save elapsed time to storage
             chrome.storage.sync.set({
                 activeTask: {
                     id: activeTaskId,
                     startTime: activeTaskStartTime
-                },
-                elapsedTime: elapsedTime
+                }
             });
 
             timeDisplay.textContent = formatTime(elapsedTime);
+            updateProgress(elapsedTime);
         }, 1000);
 
         chrome.runtime.sendMessage({
             action: "startTask",
             taskId: activeTaskId,
-            startTime: startTime,
-            elapsedTime: elapsedTime
+            startTime: activeTaskStartTime
         });
 
         activeTaskName.textContent = "Currently working on: " + taskItem.querySelector('.task-name').textContent;
         console.log('Task ID:', activeTaskId);
+        console.log('start:', formatTime(activeTaskStartTime));
     }
 
     function stopTask(taskItem) {
@@ -357,9 +364,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const cumulativeTimeDisplay = taskItem.querySelector('.cumulative-time-display');
 
         const elapsedTime = Date.now() - activeTaskStartTime;
-        const currentTaskTime = parseTime(timeDisplay.textContent);
-        const newTaskTime = currentTaskTime + elapsedTime;
-
         timeDisplay.textContent = formatTime(0);
         taskItem.dataset.cumulativeTime = parseInt(taskItem.dataset.cumulativeTime) + elapsedTime;
         cumulativeTimeDisplay.textContent = formatTime(parseInt(taskItem.dataset.cumulativeTime));
@@ -384,8 +388,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         saveTasks();
 
+        updateProgress(0);
+
         // Remove active task tracking from storage
-        chrome.storage.sync.remove(['activeTask', 'elapsedTime']);
+        chrome.storage.sync.remove(['activeTask']);
 
         chrome.runtime.sendMessage({ action: "stopTask" });
         activeTaskName.textContent = "Start a task!";
@@ -445,6 +451,27 @@ document.addEventListener('DOMContentLoaded', function() {
         const minutes = parseInt(timeParts[1]) * 60000;
         const seconds = parseInt(timeParts[2]) * 1000;
         return hours + minutes + seconds;
+    }
+
+    function updateProgress(elapsedTime) {
+        if (!elapsedTime) {
+            progressPath.setAttribute("d", getPieSlicePath(0));
+            return;
+        }
+
+        let progress = (elapsedTime % goalTime)/goalTime;
+        progressPath.setAttribute("d", getPieSlicePath(progress));
+    }
+
+    function getPieSlicePath(progress) {
+        const radius = 14, center = 16;
+        const angle = progress * 360;
+        const radians = (angle - 90) * (Math.PI / 180);
+        const x = center + radius * Math.cos(radians);
+        const y = center + radius * Math.sin(radians);
+        const largeArcFlag = progress > 0.5 ? 1 : 0;
+        
+        return `M${center},${center - radius} A${radius},${radius} 0 ${largeArcFlag},1 ${x},${y} L${center},${center} Z`;
     }
 
     newTaskInput.focus();
