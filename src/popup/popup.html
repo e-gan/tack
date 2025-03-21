@@ -26,11 +26,19 @@
         </div>
 
         <div class="clock-container">
-            <svg width="50" height="50" viewBox="0 0 32 32">
-                <!-- Background Circle (Gray) -->
-                <circle cx="16" cy="16" r="14" fill="lightgray"></circle>
-                <!-- Progress Path (Initially Empty) -->
-                <path id="progress" fill="green" d="M16 16 L16 16"></path>
+            <svg width="60" height="60" viewBox="0 0 60 60">
+                <!-- Background Circles -->
+                <circle cx="30" cy="30" r="26" stroke="lightgray" stroke-width="4" fill="none"/>
+                <circle cx="30" cy="30" r="20" stroke="lightgray" stroke-width="4" fill="none"/>
+
+                <!-- Progress Rings -->
+                <circle id="outer-ring" cx="30" cy="30" r="26" stroke="green" stroke-width="4" fill="none"
+                        stroke-dasharray="163" stroke-dashoffset="163" stroke-linecap="round" />
+                <circle id="inner-ring" cx="30" cy="30" r="20" stroke="red" stroke-width="4" fill="none"
+                        stroke-dasharray="125.6" stroke-dashoffset="125.6" stroke-linecap="round" />
+
+                <!-- Countdown Text -->
+                <text id="countdown-timer" x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="10px" fill="black">02:00</text>
             </svg>
         </div>
     </div>

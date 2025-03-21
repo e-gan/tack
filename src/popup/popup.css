@@ -26,9 +26,13 @@ h1 {
     margin: auto;
 }
 
-svg {
+/* svg {
     transform: rotate(-90deg); /* Rotate for correct pie chart direction */
-}
+/* } */ */
+
+/* #outer-ring, #inner-ring {
+    transition: stroke-dashoffset 1s linear;
+} */
 
 button {
     background-color: #ffffff;
@@ -102,6 +106,13 @@ button:active {
     margin: 5px 0;
     border: 1px solid #ccc;
     border-radius: 5px;
+}
+#new-task,
+#category-name {
+    margin-top: 10px; /* Adjust this depending on ring position */
+    width: calc(100% - 20px);
+    padding: 6px;
+    font-size: 14px;
 }
 
 #category-color {

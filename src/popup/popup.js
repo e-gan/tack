@@ -11,17 +11,24 @@ document.addEventListener('DOMContentLoaded', function() {
     const summaryStats = document.getElementById('summary-stats');
     const refreshButton = document.getElementById('refresh-button');
     const categoryStatsContainer = document.getElementById('category-stats');
-    const progressPath = document.getElementById("progress");
-    const goalTime = 20*60*1000; // 20 minutes in milliseconds
     let taskCount = 0;
     let totalTimeSpent = 0;
     let categoryTimes = {};
     let categoryColors = {};
     let activeTaskId = null;
     let activeTaskStartTime = null;
-    let timerInterval = null;
+    // let timerInterval = null;
     let selectedColor = '#FFB3BA'; // Default color
     let selectedColorIndex = 0; // Index of the currently selected color
+    let ringTimerInterval = null;
+    let ringStartTime = null;
+    let ringPausedElapsed = 0;
+    const RING_CONFIG = {
+        outerDuration: 2 * 60 * 1000, // 2 mins
+        innerDuration: 2 * 60 * 1000,
+        totalOuter: 163,
+        totalInner: 125.6
+    };
 
     // Predefined pastel color options in rainbow order
     const colors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', '#E3BAFF'];
@@ -39,9 +46,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
 
-    function selectColor(index) {
-        selectedColorIndex = index;
+    function selectColor(indexOrColor) {
+        let index;
+
+        if (typeof indexOrColor === 'number') {
+            index = indexOrColor
+        } else {
+            index = colors.indexOf(indexOrColor);
+            if (index === -1) {
+                console.error('Color not found in the predefined list.');
+                return;
+            }
+        }
         selectedColor = colors[index];
+        console.log("Selected color: ", selectedColor);
         // Highlight the selected color
         document.querySelectorAll('.color-option').forEach((option, i) => {
             option.style.borderColor = i === index ? '#000' : 'transparent';
@@ -65,9 +83,8 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCategoryStats();
 
         // Restore active task if it was running
-        console.log(data.activeTask);
         if (data.activeTask) {
-            console.log(data.activeTask.id);
+            console.log("active task: ", data.activeTask);
             startTask(getTaskItemById(data.activeTask.id), data.activeTask.startTime);
         }
     });
@@ -85,22 +102,23 @@ document.addEventListener('DOMContentLoaded', function() {
             event.preventDefault(); // Prevent form submission
             const categoryName = categoryNameInput.value.trim();
             if (categoryName) {
+                console.log("Category name: ", categoryName);
                 if (categoryColors[categoryName]) {
-                    createTask();
+                    selectColor(categoryColors[categoryName]);
                 } else {
                     // Move focus to color selection
                     selectColor(0);  // Select the first color by default
-                    colorOptionsContainer.focus(); // Move focus to color selection
                 }
+                colorOptionsContainer.focus();  // Move focus to color selection
             }
         }
     });
 
     colorOptionsContainer.setAttribute('tabindex', '0'); // Make div focusable
 
-    headerContainer.addEventListener('keydown', function(event) {
+    colorOptionsContainer.addEventListener('keydown', function(event) {
         if (event.key === 'ArrowRight') {
-            console.log("arrow right header container");
+            console.log("arrow right color options container");
             selectedColorIndex = (selectedColorIndex + 1) % colors.length;
             selectColor(selectedColorIndex);
         } else if (event.key === 'ArrowLeft') {
@@ -117,15 +135,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     refreshButton.addEventListener('click', function() {
+        // Reset summary stats
         taskCount = 0;
         totalTimeSpent = 0;
         categoryTimes = {};
-        categoryColors = {};
-        tasksContainer.innerHTML = '';
-        categoryStatsContainer.innerHTML = '';
+
+        // Update the UI for summary stats
         taskCountElement.textContent = taskCount;
         totalTimeElement.textContent = formatTime(totalTimeSpent);
-        chrome.storage.sync.set({ taskCount: taskCount, totalTimeSpent: totalTimeSpent, categoryTimes: categoryTimes, categoryColors: categoryColors, tasks: [] });
+        updateCategoryStats();
+
+        // Save the updated summary stats to storage
+        chrome.storage.sync.set({
+            taskCount: taskCount,
+            totalTimeSpent: totalTimeSpent,
+            categoryTimes: categoryTimes
+        });
     });
 
     summaryStats.addEventListener('click', function() {
@@ -148,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getTaskItemById(taskId) {
         const temp = document.querySelector(`.task-item[data-task-id="${taskId}"]`);
-        console.log(temp.dataset.taskId);
+        // console.log(temp.dataset.taskId);
         return temp;
     }
 
@@ -187,6 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
         taskItem.dataset.cumulativeTime = timeSpent; // Store cumulative time in data attribute
         taskItem.style.borderColor = color; // Set border color based on category
 
+
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'checkbox';
@@ -202,35 +228,13 @@ document.addEventListener('DOMContentLoaded', function() {
         taskName.textContent = taskText;
         taskName.className = 'task-name';
 
-        const caret = document.createElement('span');
-        caret.className = 'caret';
-        caret.innerHTML = '&#9660;'; // Downward arrow
-
-        const addLinkButton = document.createElement('button');
-        addLinkButton.textContent = '+';
-        addLinkButton.className = 'add-link-button';
-        addLinkButton.addEventListener('click', function() {
-            chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-                const taskUrl = tabs[0].url;
-                const domain = new URL(taskUrl).hostname;
-                addLink(taskItem, domain, taskUrl);
-                saveTasks();
-            });
-        });
-
         const taskNameContainer = document.createElement('div');
         taskNameContainer.className = 'task-name-container';
         taskNameContainer.appendChild(taskName);
-        taskNameContainer.appendChild(addLinkButton);
-        taskNameContainer.appendChild(caret);
-        taskNameContainer.addEventListener('click', function() {
-            linksContainer.classList.toggle('hidden');
-            caret.classList.toggle('caret-rotate');
-        });
 
-        const timeDisplay = document.createElement('span');
-        timeDisplay.className = 'time-display';
-        timeDisplay.textContent = formatTime(0); // Initialize with 0 for current session
+        // const timeDisplay = document.createElement('span');
+        // timeDisplay.className = 'time-display';
+        // timeDisplay.textContent = formatTime(0); // Initialize with 0 for current session
 
         const cumulativeTimeDisplay = document.createElement('span');
         cumulativeTimeDisplay.className = 'cumulative-time-display';
@@ -238,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const timeContainer = document.createElement('div');
         timeContainer.className = 'time-container';
-        timeContainer.appendChild(timeDisplay);
+        // timeContainer.appendChild(timeDisplay);
         timeContainer.appendChild(cumulativeTimeDisplay);
 
         const startButton = document.createElement('button');
@@ -274,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
         taskItem.appendChild(taskContent);
         taskItem.appendChild(linksContainer);
 
-        links.forEach(link => addLink(taskItem, link.domain, link.url));
+        // links.forEach(link => addLink(taskItem, link.domain, link.url));
 
         tasksContainer.appendChild(taskItem);
 
@@ -288,31 +292,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function addLink(taskItem, domain, url) {
-        const linksContainer = taskItem.querySelector('.links-container');
-
-        const linkItem = document.createElement('div');
-        linkItem.className = 'link-item';
-
-        const link = document.createElement('a');
-        link.href = url;
-        link.textContent = domain;
-        link.target = '_blank';
-
-        const removeLinkButton = document.createElement('button');
-        removeLinkButton.textContent = 'x';
-        removeLinkButton.className = 'remove-link-button';
-        removeLinkButton.addEventListener('click', function() {
-            linksContainer.removeChild(linkItem);
-            saveTasks();
-        });
-
-        linkItem.appendChild(link);
-        linkItem.appendChild(removeLinkButton);
-        linksContainer.appendChild(linkItem);
-    }
-
     function startTask(taskItem, startTime) {
+        if (!taskItem) {
+            console.error('Task item not found');
+            return;
+        }
         if (activeTaskId && activeTaskStartTime) {
             stopTask(getTaskItemById(activeTaskId));
         }
@@ -324,47 +308,33 @@ document.addEventListener('DOMContentLoaded', function() {
         activeTaskId = taskItem.dataset.taskId;
         activeTaskStartTime = startTime;
 
-        const timeDisplay = taskItem.querySelector('.time-display');
+        // const timeDisplay = taskItem.querySelector('.time-display');
         const stopButton = taskItem.querySelector('.stop-button');
         const startButton = taskItem.querySelector('.start-button');
 
         startButton.disabled = true;
         stopButton.disabled = false;
 
-        timerInterval = setInterval(() => {
-            const elapsedTime = Date.now() - activeTaskStartTime;
-
-            // // Continuously save elapsed time to storage
-            chrome.storage.sync.set({
-                activeTask: {
-                    id: activeTaskId,
-                    startTime: activeTaskStartTime
-                }
-            });
-
-            timeDisplay.textContent = formatTime(elapsedTime);
-            updateProgress(elapsedTime);
-        }, 1000);
-
-        chrome.runtime.sendMessage({
-            action: "startTask",
-            taskId: activeTaskId,
-            startTime: activeTaskStartTime
+        document.querySelectorAll('.start-button, .stop-button').forEach(btn => {
+            btn.style.display = 'none';
         });
+        stopButton.style.display = 'inline-block';
+        resetRing();
+        startRing();
 
-        activeTaskName.textContent = "Currently working on: " + taskItem.querySelector('.task-name').textContent;
-        console.log('Task ID:', activeTaskId);
-        console.log('start:', formatTime(activeTaskStartTime));
+        activeTaskName.textContent = "Current task: " + taskItem.querySelector('.task-name').textContent;
     }
 
     function stopTask(taskItem) {
-        clearInterval(timerInterval);
+        // clearInterval(timerInterval);
 
-        const timeDisplay = taskItem.querySelector('.time-display');
+        pauseRing();
+
+        // const timeDisplay = taskItem.querySelector('.time-display');
         const cumulativeTimeDisplay = taskItem.querySelector('.cumulative-time-display');
 
         const elapsedTime = Date.now() - activeTaskStartTime;
-        timeDisplay.textContent = formatTime(0);
+        // timeDisplay.textContent = formatTime(0);
         taskItem.dataset.cumulativeTime = parseInt(taskItem.dataset.cumulativeTime) + elapsedTime;
         cumulativeTimeDisplay.textContent = formatTime(parseInt(taskItem.dataset.cumulativeTime));
 
@@ -388,13 +358,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         saveTasks();
 
-        updateProgress(0);
+        // updateProgress(0);
 
         // Remove active task tracking from storage
         chrome.storage.sync.remove(['activeTask']);
 
         chrome.runtime.sendMessage({ action: "stopTask" });
         activeTaskName.textContent = "Start a task!";
+
+        // Show all start and stop buttons again
+        document.querySelectorAll('.start-button, .stop-button').forEach(btn => {
+            btn.style.display = 'inline-block';
+        });
+
     }
 
 
@@ -445,34 +421,100 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${hours}:${minutes}:${seconds}`;
     }
 
-    function parseTime(timeString) {
-        const timeParts = timeString.split(':');
-        const hours = parseInt(timeParts[0]) * 3600000;
-        const minutes = parseInt(timeParts[1]) * 60000;
-        const seconds = parseInt(timeParts[2]) * 1000;
-        return hours + minutes + seconds;
-    }
+    // function getPieSlicePath(progress) {
+    //     const radius = 14, center = 16;
+    //     const angle = progress * 360;
+    //     const radians = (angle - 90) * (Math.PI / 180);
+    //     const x = center + radius * Math.cos(radians);
+    //     const y = center + radius * Math.sin(radians);
+    //     const largeArcFlag = progress > 0.5 ? 1 : 0;
 
-    function updateProgress(elapsedTime) {
-        if (!elapsedTime) {
-            progressPath.setAttribute("d", getPieSlicePath(0));
-            return;
-        }
-
-        let progress = (elapsedTime % goalTime)/goalTime;
-        progressPath.setAttribute("d", getPieSlicePath(progress));
-    }
-
-    function getPieSlicePath(progress) {
-        const radius = 14, center = 16;
-        const angle = progress * 360;
-        const radians = (angle - 90) * (Math.PI / 180);
-        const x = center + radius * Math.cos(radians);
-        const y = center + radius * Math.sin(radians);
-        const largeArcFlag = progress > 0.5 ? 1 : 0;
-        
-        return `M${center},${center - radius} A${radius},${radius} 0 ${largeArcFlag},1 ${x},${y} L${center},${center} Z`;
-    }
+    //     return `M${center},${center - radius} A${radius},${radius} 0 ${largeArcFlag},1 ${x},${y} L${center},${center} Z`;
+    // }
 
     newTaskInput.focus();
+
+
+    // RING TIMER RELATED
+
+    function startRing() {
+        const outerRing = document.getElementById("outer-ring");
+        const innerRing = document.getElementById("inner-ring");
+        const timerText = document.getElementById("countdown-timer");
+
+        if (!outerRing || !innerRing || !timerText) return;
+
+        // Clear any existing interval
+        if (ringTimerInterval) {
+            clearInterval(ringTimerInterval);
+        }
+
+        ringStartTime = Date.now() - ringPausedElapsed;
+
+        ringTimerInterval = setInterval(() => {
+            const now = Date.now();
+            const elapsed = now - ringStartTime;
+            ringPausedElapsed = elapsed; // keep track of pause point
+
+            if (elapsed <= RING_CONFIG.outerDuration) {
+                const progress = elapsed / RING_CONFIG.outerDuration;
+                outerRing.style.strokeDashoffset = RING_CONFIG.totalOuter * (1 - progress);
+
+                const remaining = RING_CONFIG.outerDuration - elapsed;
+                timerText.textContent = formatShortTime(remaining);
+            } else if (elapsed <= RING_CONFIG.outerDuration + RING_CONFIG.innerDuration) {
+                outerRing.style.strokeDashoffset = 0;
+
+                const innerElapsed = elapsed - RING_CONFIG.outerDuration;
+                const progress = innerElapsed / RING_CONFIG.innerDuration;
+                innerRing.style.strokeDashoffset = RING_CONFIG.totalInner * (1 - progress);
+
+                const remaining = RING_CONFIG.innerDuration - innerElapsed;
+                timerText.textContent = formatShortTime(remaining);
+            } else {
+                outerRing.style.strokeDashoffset = 0;
+                innerRing.style.strokeDashoffset = 0;
+                timerText.textContent = "Done!";
+                clearInterval(ringTimerInterval);
+                ringTimerInterval = null;
+            }
+        }, 1000);
+    }
+
+    function pauseRing() {
+        if (ringTimerInterval) {
+            clearInterval(ringTimerInterval);
+            ringTimerInterval = null;
+        }
+
+        const timerText = document.getElementById("countdown-timer");
+        if (timerText) {
+            timerText.textContent = "Paused";
+        }
+    }
+
+    function resetRing() {
+        pauseRing(); // clear interval
+
+        const outerRing = document.getElementById("outer-ring");
+        const innerRing = document.getElementById("inner-ring");
+        const timerText = document.getElementById("countdown-timer");
+
+        if (outerRing) outerRing.style.strokeDashoffset = RING_CONFIG.totalOuter;
+        if (innerRing) innerRing.style.strokeDashoffset = RING_CONFIG.totalInner;
+        if (timerText) timerText.textContent = formatShortTime(RING_CONFIG.outerDuration);
+
+        ringStartTime = null;
+        ringPausedElapsed = 0;
+    }
+
+
+
+    function formatShortTime(ms) {
+        const totalSeconds = Math.ceil(ms / 1000);
+        const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+        const seconds = String(totalSeconds % 60).padStart(2, '0');
+        return `${minutes}:${seconds}`;
+    }
+
 });
