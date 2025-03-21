@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let categoryTimes = {};
     let categoryColors = {};
     let activeTaskId = null;
+    let pausedTaskId = null;
     let activeTaskStartTime = null;
     // let timerInterval = null;
     let selectedColor = '#FFB3BA'; // Default color
@@ -260,10 +261,21 @@ document.addEventListener('DOMContentLoaded', function() {
             stopTask(taskItem);
         });
 
+        const resumeButton = document.createElement('button');
+        resumeButton.textContent = 'Resume';
+        resumeButton.className = 'resume-button';
+        resumeButton.style.display = 'none'; // hidden initially
+        resumeButton.addEventListener('click', function () {
+            resumeTask(taskItem);
+        });
+
+
         const buttonGroup = document.createElement('div');
         buttonGroup.className = 'button-group';
         buttonGroup.appendChild(startButton);
         buttonGroup.appendChild(stopButton);
+        buttonGroup.appendChild(resumeButton);
+
 
         const taskContent = document.createElement('div');
         taskContent.className = 'task-content';
@@ -308,6 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
         activeTaskId = taskItem.dataset.taskId;
         activeTaskStartTime = startTime;
 
+
         // const timeDisplay = taskItem.querySelector('.time-display');
         const stopButton = taskItem.querySelector('.stop-button');
         const startButton = taskItem.querySelector('.start-button');
@@ -315,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
         startButton.disabled = true;
         stopButton.disabled = false;
 
-        document.querySelectorAll('.start-button, .stop-button').forEach(btn => {
+        document.querySelectorAll('.start-button, .stop-button, .resume-button').forEach(btn => {
             btn.style.display = 'none';
         });
         stopButton.style.display = 'inline-block';
@@ -326,22 +339,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function stopTask(taskItem) {
-        // clearInterval(timerInterval);
-
         pauseRing();
 
-        // const timeDisplay = taskItem.querySelector('.time-display');
-        const cumulativeTimeDisplay = taskItem.querySelector('.cumulative-time-display');
-
+        // FIX: Get elapsedTime before resetting activeTaskStartTime
         const elapsedTime = Date.now() - activeTaskStartTime;
-        // timeDisplay.textContent = formatTime(0);
+
+        const cumulativeTimeDisplay = taskItem.querySelector('.cumulative-time-display');
         taskItem.dataset.cumulativeTime = parseInt(taskItem.dataset.cumulativeTime) + elapsedTime;
         cumulativeTimeDisplay.textContent = formatTime(parseInt(taskItem.dataset.cumulativeTime));
-
-        const startButton = taskItem.querySelector('.start-button');
-        const stopButton = taskItem.querySelector('.stop-button');
-        startButton.disabled = false;
-        stopButton.disabled = true;
 
         activeTaskId = null;
         activeTaskStartTime = null;
@@ -350,28 +355,55 @@ document.addEventListener('DOMContentLoaded', function() {
         totalTimeElement.textContent = formatTime(totalTimeSpent);
 
         const category = taskItem.dataset.category;
-        if (!categoryTimes[category]) {
-            categoryTimes[category] = 0;
-        }
+        if (!categoryTimes[category]) categoryTimes[category] = 0;
         categoryTimes[category] += elapsedTime;
         updateCategoryStats();
-
         saveTasks();
 
-        // updateProgress(0);
-
-        // Remove active task tracking from storage
         chrome.storage.sync.remove(['activeTask']);
-
         chrome.runtime.sendMessage({ action: "stopTask" });
         activeTaskName.textContent = "Start a task!";
 
-        // Show all start and stop buttons again
         document.querySelectorAll('.start-button, .stop-button').forEach(btn => {
             btn.style.display = 'inline-block';
         });
 
+        const startButton = taskItem.querySelector('.start-button');
+        const resumeButton = taskItem.querySelector('.resume-button');
+        const stopButton = taskItem.querySelector('.stop-button');
+
+        startButton.style.display = 'none';
+        stopButton.style.display = 'none';
+        resumeButton.style.display = 'inline-block';
+        resumeButton.disabled = false;
     }
+
+
+
+    function resumeTask(taskItem) {
+        activeTaskId = taskItem.dataset.taskId;
+        activeTaskStartTime = Date.now();
+
+        document.querySelectorAll('.start-button, .stop-button, .resume-button').forEach(btn => {
+            btn.style.display = 'none';
+        });
+
+        // Show STOP button ONLY for the resumed task
+        const stopButton = taskItem.querySelector('.stop-button');
+        stopButton.disabled = false;
+        stopButton.style.display = 'inline-block';
+
+        // Just in case: hide resume and start button for this task explicitly
+        const resumeButton = taskItem.querySelector('.resume-button');
+        const startButton = taskItem.querySelector('.start-button');
+        resumeButton.style.display = 'none';
+        startButton.style.display = 'none';
+
+        startRing();
+        activeTaskName.textContent = "Resumed task: " + taskItem.querySelector('.task-name').textContent;
+    }
+
+
 
 
     function updateCategoryStats() {
