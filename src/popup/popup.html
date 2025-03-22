@@ -3,6 +3,12 @@
 <head>
     <link rel="stylesheet" type="text/css" href="popup.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Confetti library -->
+    <script src="confetti.browser.min.js"></script>
+
+    <!-- Add this somewhere in your HTML or preload it in JS -->
+    <audio id="check-sound" src="check.wav" preload="auto"></audio>
+
 </head>
 <body>
     <div class="header-container">
@@ -44,7 +50,7 @@
     </div>
 
 
-    <input type="text" id="new-task" placeholder="New task...">
+    <input type="text" id="new-task" placeholder="New task..." maxlength="19">
     <input type="text" id="category-name" placeholder="Category Name">
 
     <div class="header-container" id="header-container">

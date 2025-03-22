@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load saved tasks and stats from chrome.storage.sync
-    chrome.storage.sync.get(['tasks', 'taskCount', 'totalTimeSpent', 'categoryTimes', 'categoryColors', 'activeTask'], function(data) {
+    chrome.storage.sync.get(['tasks', 'taskCount', 'totalTimeSpent', 'categoryTimes', 'categoryColors', 'activeTask', 'pausedTask'], function(data) {
         if (data.tasks) {
             data.tasks.forEach(task => {
                 addTask(task.text, task.id, task.category, task.color, task.links, task.timeSpent, false);
@@ -78,16 +78,60 @@ document.addEventListener('DOMContentLoaded', function() {
         totalTimeSpent = data.totalTimeSpent || 0;
         categoryTimes = data.categoryTimes || {};
         categoryColors = data.categoryColors || {};
+        if (data.activeTask) {
+            const taskItem = getTaskItemById(data.activeTask.id);
+            startTask(taskItem, data.activeTask.startTime);
+            startRing(data.activeTask.startTime)
+        } else if (data.pausedTask) {
+            const pausedTaskItem = getTaskItemById(data.pausedTask.id);
+            if (pausedTaskItem) {
+                const stopButton = pausedTaskItem.querySelector('.stop-button');
+                const startButton = pausedTaskItem.querySelector('.start-button');
+                const resumeButton = pausedTaskItem.querySelector('.resume-button');
+
+                startButton.style.display = 'none';
+                stopButton.style.display = 'none';
+                resumeButton.style.display = 'inline-block';
+
+                resumeButton.disabled = false;
+
+
+                // Restore ring to paused state
+                ringPausedElapsed = data.pausedTask.ringPausedElapsed || 0;
+
+                const outerRing = document.getElementById("outer-ring");
+                const innerRing = document.getElementById("inner-ring");
+                const timerText = document.getElementById("countdown-timer");
+
+                if (outerRing && innerRing && timerText) {
+                    const elapsed = ringPausedElapsed;
+
+                    if (elapsed <= RING_CONFIG.outerDuration) {
+                        const progress = elapsed / RING_CONFIG.outerDuration;
+                        outerRing.style.strokeDashoffset = RING_CONFIG.totalOuter * (1 - progress);
+                        innerRing.style.strokeDashoffset = RING_CONFIG.totalInner;
+                        // timerText.textContent = formatShortTime(RING_CONFIG.outerDuration - elapsed);
+                    } else if (elapsed <= RING_CONFIG.outerDuration + RING_CONFIG.innerDuration) {
+                        outerRing.style.strokeDashoffset = 0;
+                        const innerElapsed = elapsed - RING_CONFIG.outerDuration;
+                        const progress = innerElapsed / RING_CONFIG.innerDuration;
+                        innerRing.style.strokeDashoffset = RING_CONFIG.totalInner * (1 - progress);
+                        // timerText.textContent = formatShortTime(RING_CONFIG.innerDuration - innerElapsed);
+                    } else {
+                        outerRing.style.strokeDashoffset = 0;
+                        innerRing.style.strokeDashoffset = 0;
+                        // timerText.textContent = "Done!";
+                    }
+                    // Set timer text to paused
+                    timerText.textContent = "Paused";
+                }
+            }
+        }
 
         taskCountElement.textContent = taskCount;
         totalTimeElement.textContent = formatTime(totalTimeSpent);
         updateCategoryStats();
 
-        // Restore active task if it was running
-        if (data.activeTask) {
-            console.log("active task: ", data.activeTask);
-            startTask(getTaskItemById(data.activeTask.id), data.activeTask.startTime);
-        }
     });
 
     newTaskInput.focus();
@@ -162,6 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function createTask() {
         const taskText = newTaskInput.value.trim();
         const categoryName = categoryNameInput.value.trim();
+
         if (taskText && categoryName) {
             const taskId = `task-${Date.now()}`;
             addTask(taskText, taskId, categoryName, selectedColor, [], 0, true);
@@ -217,11 +262,37 @@ document.addEventListener('DOMContentLoaded', function() {
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
         checkbox.className = 'checkbox';
+        const checkSound = new Audio('check.wav');
+
         checkbox.addEventListener('change', function() {
             if (checkbox.checked) {
-                tasksContainer.removeChild(taskItem);
-                incrementTaskCount();
-                saveTasks();
+                checkSound.play();
+
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.6 }
+                });
+
+                taskItem.style.transition = 'all 0.4s ease';
+                taskItem.style.transform = 'scale(0.95)';
+                taskItem.style.backgroundColor = '#d4edda'; // green flash
+
+                const taskName = taskItem.querySelector('.task-name');
+                if (taskName) taskName.style.textDecoration = 'line-through';
+
+                const msg = document.createElement('div');
+                msg.className = 'task-complete-message';
+                msg.textContent = 'Task Complete!';
+                document.body.appendChild(msg);
+                setTimeout(() => msg.remove(), 1500);
+
+                setTimeout(() => {
+                    tasksContainer.removeChild(taskItem);
+                    incrementTaskCount();
+                    saveTasks();
+                }, 500); // after animation completes
+
             }
         });
 
@@ -319,9 +390,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         activeTaskId = taskItem.dataset.taskId;
         activeTaskStartTime = startTime;
+        chrome.storage.sync.set({
+            activeTask: {
+              id: activeTaskId,
+              startTime: activeTaskStartTime
+            }
+          });
 
 
-        // const timeDisplay = taskItem.querySelector('.time-display');
         const stopButton = taskItem.querySelector('.stop-button');
         const startButton = taskItem.querySelector('.start-button');
 
@@ -360,6 +436,13 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCategoryStats();
         saveTasks();
 
+        chrome.storage.sync.set({
+            pausedTask: {
+              id: taskItem.dataset.taskId,
+              ringPausedElapsed: ringPausedElapsed,
+              cumulativeTime: parseInt(taskItem.dataset.cumulativeTime),
+            }
+          });
         chrome.storage.sync.remove(['activeTask']);
         chrome.runtime.sendMessage({ action: "stopTask" });
         activeTaskName.textContent = "Start a task!";
@@ -381,26 +464,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     function resumeTask(taskItem) {
-        activeTaskId = taskItem.dataset.taskId;
-        activeTaskStartTime = Date.now();
+        chrome.storage.sync.get(['pausedTask'], function(data) {
+            const ringElapsed = data.pausedTask?.ringPausedElapsed || 0;
 
-        document.querySelectorAll('.start-button, .stop-button, .resume-button').forEach(btn => {
-            btn.style.display = 'none';
+            activeTaskId = taskItem.dataset.taskId;
+            activeTaskStartTime = Date.now();
+
+            document.querySelectorAll('.start-button, .stop-button, .resume-button').forEach(btn => {
+                btn.style.display = 'none';
+            });
+
+            // Show STOP button ONLY for the resumed task
+            const stopButton = taskItem.querySelector('.stop-button');
+            stopButton.disabled = false;
+            stopButton.style.display = 'inline-block';
+
+            // Just in case: hide resume and start button for this task explicitly
+            const resumeButton = taskItem.querySelector('.resume-button');
+            const startButton = taskItem.querySelector('.start-button');
+            resumeButton.style.display = 'none';
+            startButton.style.display = 'none';
+
+            // ✨ Use the previously paused time offset to continue the ring
+            resetRing();
+            ringPausedElapsed = ringElapsed;
+            startRing(Date.now() - ringPausedElapsed);
+
+            activeTaskName.textContent = "Resumed task: " + taskItem.querySelector('.task-name').textContent;
+
+            // Clear pausedTask and update activeTask in storage
+            chrome.storage.sync.remove(['pausedTask']);
+            chrome.storage.sync.set({
+                activeTask: {
+                    id: activeTaskId,
+                    startTime: activeTaskStartTime
+                }
+            });
         });
-
-        // Show STOP button ONLY for the resumed task
-        const stopButton = taskItem.querySelector('.stop-button');
-        stopButton.disabled = false;
-        stopButton.style.display = 'inline-block';
-
-        // Just in case: hide resume and start button for this task explicitly
-        const resumeButton = taskItem.querySelector('.resume-button');
-        const startButton = taskItem.querySelector('.start-button');
-        resumeButton.style.display = 'none';
-        startButton.style.display = 'none';
-
-        startRing();
-        activeTaskName.textContent = "Resumed task: " + taskItem.querySelector('.task-name').textContent;
     }
 
 
@@ -469,7 +569,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // RING TIMER RELATED
 
-    function startRing() {
+    function startRing(startTimeFromStorage = null) {
         const outerRing = document.getElementById("outer-ring");
         const innerRing = document.getElementById("inner-ring");
         const timerText = document.getElementById("countdown-timer");
@@ -480,8 +580,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (ringTimerInterval) {
             clearInterval(ringTimerInterval);
         }
+        ringStartTime = startTimeFromStorage ? startTimeFromStorage : Date.now();
 
-        ringStartTime = Date.now() - ringPausedElapsed;
+        // ringStartTime = Date.now() - ringPausedElapsed;
 
         ringTimerInterval = setInterval(() => {
             const now = Date.now();
