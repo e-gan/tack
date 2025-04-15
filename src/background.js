@@ -1,87 +1,42 @@
-// let activeTaskId = null;
-// let activeTaskName = null;
-// let activeTaskStartTime = null;
-// let timerInterval = null;
+let ringInterval;
+const WORK_DURATION = 2 * 60 * 1000;  // 2 min work
+const BREAK_DURATION = 2 * 60 * 1000; // 2 min break
+const TOTAL_DURATION = WORK_DURATION + BREAK_DURATION;
 
-// // Resume task tracking on startup
-// chrome.runtime.onStartup.addListener(() => {
-//     chrome.storage.sync.get(['activeTask'], function (data) {
-//         if (data.activeTask) {
-//             activeTaskId = data.activeTask.id;
-//             activeTaskStartTime = data.activeTask.startTime;
-//             resumeTask();
-//         }
-//     });
-// });
 
-// // Listen for messages from popup.js
-// chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-//     if (request.action === "startTask") {
-//         startTask(request.taskId, request.startTime, request.elapsedTime);
-//     } else if (request.action === "stopTask") {
-//         stopTask();
-//     } else if (request.action === "getTaskStatus") {
-//         sendResponse({
-//             activeTaskId: activeTaskId,
-//             startTime: activeTaskStartTime
-//         });
-//     }
-// });
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "startRing") {
+      if (ringInterval) clearInterval(ringInterval);
 
-// // Start tracking a task (keeps running even when popup closes)
-// function startTask(taskId, startTime) {
-//     if (activeTaskId) {
-//         stopTask();
-//     }
+      const start = message.startTime;
+      ringInterval = setInterval(() => {
+        const elapsed = Date.now() - start;
 
-//     activeTaskId = taskId;
-//     activeTaskStartTime = startTime;
+        if (elapsed < WORK_DURATION) {
+          // Work phase
+          const remaining = WORK_DURATION - elapsed;
+          const min = Math.ceil(remaining / 60000);
+          const sec = Math.ceil((remaining % 60000) / 1000);
+          const display = min > 1 ? `${min}m` : `${sec}s`;
 
-//     chrome.storage.sync.set({
-//         activeTask: {
-//             id: activeTaskId,
-//             startTime: activeTaskStartTime
-//         }
-//     });
+          chrome.action.setBadgeText({ text: display });
+          chrome.action.setBadgeBackgroundColor({ color: '#FF6347' }); // red
+        } else if (elapsed < TOTAL_DURATION) {
+          // Break phase
+          const breakElapsed = elapsed - WORK_DURATION;
+          const remaining = BREAK_DURATION - breakElapsed;
+          const min = Math.ceil(remaining / 60000);
+          const sec = Math.ceil((remaining % 60000) / 1000);
+          const display = min > 1 ? `${min}m` : `${sec}s`;
 
-//     if (timerInterval) {
-//         clearInterval(timerInterval);
-//     }
-
-//     // // Continuously update elapsed time every second
-//     // timerInterval = setInterval(() => {
-//     //     const elapsedTime = Date.now() - activeTaskStartTime;
-//     //     chrome.storage.sync.set({ elapsedTime: elapsedTime });
-//     // }, 1000);
-// }
-
-// // Stop tracking a task
-// function stopTask() {
-//     if (timerInterval) {
-//         clearInterval(timerInterval);
-//     }
-
-//     activeTaskId = null;
-//     activeTaskStartTime = null;
-
-//     chrome.storage.sync.remove(['activeTask', 'elapsedTime']);
-// }
-
-// // Resume active task when Chrome restarts or extension reloads
-// function resumeTask() {
-//     chrome.storage.sync.get(['activeTask'], function (data) {
-//         if (data.activeTask) {
-//             activeTask = data.activeTask.id;
-//             activeTaskStartTime = data.activeTask.startTime;
-
-//             if (timerInterval) {
-//                 clearInterval(timerInterval);
-//             }
-
-//             // timerInterval = setInterval(() => {
-//             //     const elapsedTime = Date.now() - activeTaskStartTime;
-//             //     chrome.storage.sync.set({ elapsedTime: elapsedTime });
-//             // }, 1000);
-//         }
-//     });
-// }
+          chrome.action.setBadgeText({ text: 'BRK' }); // 💡 switch to display for break if you want
+          chrome.action.setBadgeBackgroundColor({ color: '#00cc66' }); // green
+        } else {
+          // Done
+          chrome.action.setBadgeText({ text: "✔" });
+          chrome.action.setBadgeBackgroundColor({ color: '#32CD32' }); // lime green
+          clearInterval(ringInterval);
+        }
+      }, 1000);
+    }
+  });

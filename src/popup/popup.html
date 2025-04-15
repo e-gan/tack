@@ -14,21 +14,6 @@
     <div class="header-container">
         <img src="tack.svg" alt="Tack" class="logo">
         <div class="stats-container">
-            <!-- Active task-->
-            <div>
-                <strong><span id="active-task-name">Start a task!</span></strong>
-            </div>
-
-            <!-- Task Count -->
-            <div id="task-count-container">
-                <span><strong>Task Count:</strong> </span>
-                <span id="task-count">0</span>  <!-- Ensure this exists -->
-            </div>
-            <!-- Total Time Spent -->
-            <div>
-                <span><strong>Total Time Spent:</strong> </span>
-                <span id="total-time">00:00:00</span> <!-- Ensure this exists -->
-            </div>
         </div>
 
         <div class="clock-container">
@@ -40,7 +25,7 @@
                 <!-- Progress Rings -->
                 <circle id="outer-ring" cx="30" cy="30" r="26" stroke="green" stroke-width="4" fill="none"
                         stroke-dasharray="163" stroke-dashoffset="163" stroke-linecap="round" />
-                <circle id="inner-ring" cx="30" cy="30" r="20" stroke="red" stroke-width="4" fill="none"
+                <circle id="inner-ring" cx="30" cy="30" r="20" stroke="blue" stroke-width="4" fill="none"
                         stroke-dasharray="125.6" stroke-dashoffset="125.6" stroke-linecap="round" />
 
                 <!-- Countdown Text -->
@@ -51,7 +36,6 @@
 
 
     <input type="text" id="new-task" placeholder="New task..." maxlength="19">
-    <input type="text" id="category-name" placeholder="Category Name">
 
     <div class="header-container" id="header-container">
         <div id="color-options" class="color-options">
@@ -68,6 +52,16 @@
         <span>Summary Statistics</span>
         <div id="stats-container" class="hidden">
             <div id="category-stats"></div>
+            <!-- Task Count -->
+            <div id="task-count-container">
+                <span><strong>Task Count:</strong> </span>
+                <span id="task-count">0</span>  <!-- Ensure this exists -->
+            </div>
+            <!-- Total Time Spent -->
+            <div>
+                <span><strong>Total Time Spent:</strong> </span>
+                <span id="total-time">00:00:00</span> <!-- Ensure this exists -->
+            </div>
             <button id="refresh-button">Refresh</button>
         </div>
     </div>

@@ -6,7 +6,9 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "storage"
+    "storage",
+    "alarms",
+    "notifications"
   ],
   "background": {
     "service_worker": "background.js"
@@ -22,7 +24,7 @@
   },
   "web_accessible_resources": [
   {
-    "resources": ["popup/check.wav"],
+    "resources": ["popup/check.wav", "timer_done.png"],
     "matches": ["<all_urls>"]
   }
 ]
