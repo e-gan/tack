@@ -771,14 +771,20 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${minutes}:${seconds}`;
     }
 
-    chrome.storage.local.get(['ringStartTime'], function(data) {
-        if (data.ringStartTime) {
-            startRing(data.ringStartTime);  // resumes visual
-            chrome.runtime.sendMessage({
-                action: "startRing",
-                startTime: data.ringStartTime  // resumes badge
-            });
-        }
+    chrome.storage.sync.get(['activeTask', 'pausedTask'], function(syncData) {
+        chrome.storage.local.get(['ringStartTime'], function(localData) {
+            const isPaused = !!syncData.pausedTask;
+            const hasActive = !!syncData.activeTask;
+            const ringStart = localData.ringStartTime;
+
+            if (ringStart && hasActive && !isPaused) {
+                startRing(ringStart);
+                chrome.runtime.sendMessage({
+                    action: "startRing",
+                    startTime: ringStart
+                });
+            }
+        });
     });
 
 });

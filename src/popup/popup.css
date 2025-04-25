@@ -21,10 +21,15 @@ h1 {
 }
 
 .clock-container {
-    width: 50px;
-    height: 50px;
+    width: 120px; /* match or slightly larger than the SVG */
+    height: 120px;
     margin: auto;
+    display: flex;            /* needed to center */
+    justify-content: center;  /* center horizontally */
+    align-items: center;      /* center vertically */
+    flex-direction: column;   /* stack SVG and image */
 }
+
 
 /* svg {
     transform: rotate(-90deg); /* Rotate for correct pie chart direction */
@@ -143,6 +148,14 @@ button:active {
     margin-bottom: 5px; /* Add some space between each category */
 }
 
+.task-label {
+    flex-grow: 1;               /* allow it to take up remaining space */
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
 
 /* Updated task-item styles */
 .task-item {
@@ -156,6 +169,12 @@ button:active {
     border-radius: 4px;
     transition: border-color 0.3s ease; /* Smooth transition for border color */
 }
+
+.task-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
 .task-content {
     display: flex;
@@ -199,7 +218,14 @@ button:active {
     margin-left: 3px;
     font-weight: 300;
 
-}
+    flex-grow: 1;
+    min-width: 0;                 /* important for ellipsis to work in flexbox */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+  }
+
 
 .link-item {
     display: flex;
