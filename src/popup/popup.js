@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const newTaskInput = document.getElementById('new-task');
     const categoryNameInput = document.getElementById('category-name');
     const colorOptionsContainer = document.getElementById('color-options');
+    const characterImg = document.querySelector('.character');
     const addTaskButton = document.getElementById('add-task-button');
     const tasksContainer = document.getElementById('tasks');
     const taskCountElement = document.getElementById('task-count');
@@ -28,6 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
         totalOuter: 163,
         totalInner: 125.6
     };
+
+    chrome.storage.local.get(['characterImage'], function(result) {
+        if (result.characterImage) {
+          const characterImg = document.querySelector('img[alt="Character"]');
+          characterImg.src = result.characterImage;
+        }
+      });
 
     // Predefined pastel color options in rainbow order
     const colors = ['#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF', '#E3BAFF'];
@@ -142,6 +150,27 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         taskCountElement.textContent = taskCount;
+
+        switch (taskCount){
+            case 0:
+                characterImg.src = 'icons/ev0.png';
+                break;
+            case 1:
+                characterImg.src = 'icons/ev1.png';
+                break;
+            case 2:
+                characterImg.src = 'icons/ev2.png';
+                break;
+            case 3:
+                characterImg.src = 'icons/ev3.png';
+                break;
+            case 4:
+                characterImg.src = 'icons/ev4.png';
+                break;
+            default:
+                characterImg.src = 'icons/ev4.png';
+                break;
+        }
         totalTimeElement.textContent = formatTime(totalTimeSpent);
         updateCategoryStats();
     });
@@ -193,6 +222,8 @@ document.addEventListener('DOMContentLoaded', function() {
             totalTimeSpent: totalTimeSpent,
             categoryTimes: categoryTimes
         });
+
+        characterImg.src = 'icons/ev0.png';
     });
 
     summaryStats.addEventListener('click', function() {
@@ -243,6 +274,27 @@ document.addEventListener('DOMContentLoaded', function() {
         taskCount++;
         taskCountElement.textContent = taskCount;
         chrome.storage.sync.set({ taskCount: taskCount });
+
+        switch (taskCount){
+            case 0:
+                characterImg.src = 'icons/ev0.png';
+                break;
+            case 1:
+                characterImg.src = 'icons/ev1.png';
+                break;
+            case 2:
+                characterImg.src = 'icons/ev2.png';
+                break;
+            case 3:
+                characterImg.src = 'icons/ev3.png';
+                break;
+            case 4:
+                characterImg.src = 'icons/ev4.png';
+                break;
+            default:
+                characterImg.src = 'icons/ev4.png';
+                break;
+        }
     }
 
 
